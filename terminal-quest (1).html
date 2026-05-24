@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+:root{
+  --bg:#0a0c0f;
+  --surface:#111418;
+  --surface2:#181c22;
+  --border:#2a3040;
+  --green:#00ff88;
+  --green2:#00cc6a;
+  --blue:#4fc3f7;
+  --yellow:#ffd54f;
+  --red:#ff5252;
+  --purple:#ce93d8;
+  --text:#e0e6f0;
+  --muted:#5a6478;
+  --font:'JetBrains Mono',monospace;
+  --display:'Orbitron',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);height:100%;overflow:hidden}
+
+body::before{
+  content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.015) 2px,rgba(0,255,136,0.015) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+#login-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;overflow-y:auto;padding:2rem;
+  background:radial-gradient(ellipse at 50% 30%,rgba(0,255,136,0.08) 0%,transparent 60%);
+}
+.logo{
+  font-family:var(--display);font-size:clamp(2.5rem,6vw,4.5rem);font-weight:900;
+  color:var(--green);text-shadow:0 0 40px rgba(0,255,136,0.4),0 0 80px rgba(0,255,136,0.2);
+  letter-spacing:0.1em;margin-bottom:0.3rem;text-align:center;
+  animation:pulse 3s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{text-shadow:0 0 40px rgba(0,255,136,0.4)}50%{text-shadow:0 0 60px rgba(0,255,136,0.7),0 0 100px rgba(0,255,136,0.3)}}
+
+@keyframes errorFlash{
+  0%{box-shadow:inset 0 0 0 0 rgba(255,82,82,0);}
+  15%{box-shadow:inset 0 0 0 100vmax rgba(255,82,82,0.18);}
+  35%{box-shadow:inset 0 0 0 100vmax rgba(255,82,82,0.08);}
+  55%{box-shadow:inset 0 0 0 100vmax rgba(255,82,82,0.14);}
+  100%{box-shadow:inset 0 0 0 0 rgba(255,82,82,0);}
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-8px)}
+  30%{transform:translateX(7px)}
+  45%{transform:translateX(-5px)}
+  60%{transform:translateX(4px)}
+  75%{transform:translateX(-2px)}
+  90%{transform:translateX(1px)}
+}
+body.error-shake{animation:shake 0.45s ease,errorFlash 0.6s ease;}
+body.error-shake #game-screen{animation:shake 0.45s ease;}
+
+@keyframes successFlash{
+  0%{box-shadow:inset 0 0 0 0 rgba(0,255,136,0);}
+  30%{box-shadow:inset 0 0 0 100vmax rgba(0,255,136,0.09);}
+  100%{box-shadow:inset 0 0 0 0 rgba(0,255,136,0);}
+}
+body.success-flash{animation:successFlash 0.5s ease;}
+
+@keyframes lineSlideIn{
+  from{opacity:0;transform:translateX(-6px);}
+  to{opacity:1;transform:translateX(0);}
+}
+.t-line{animation:lineSlideIn 0.12s ease;}
+
+@keyframes nanoSlideIn{
+  from{opacity:0;transform:scale(0.97);}
+  to{opacity:1;transform:scale(1);}
+}
+@keyframes nanoSlideOut{
+  from{opacity:1;transform:scale(1);}
+  to{opacity:0;transform:scale(0.97);}
+}
+
+@keyframes taskAppear{
+  from{opacity:0;transform:translateY(4px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.task-item{animation:taskAppear 0.15s ease;}
+
+@keyframes skipPulse{
+  0%,100%{border-color:var(--border);}
+  50%{border-color:var(--yellow);box-shadow:0 0 8px rgba(255,213,79,0.3);}
+}
+.skip-btn{animation:skipPulse 2s ease-in-out infinite;}
+
+@keyframes loginFadeIn{
+  from{opacity:0;transform:translateY(20px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.login-box{animation:loginFadeIn 0.5s ease 0.2s both;}
+.logo{animation:pulse 3s ease-in-out infinite, loginFadeIn 0.4s ease both;}
+
+@keyframes dotPop{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.6);}
+  100%{transform:scale(1);}
+}
+.mistake-dot.active{animation:dotPop 0.3s ease;}
+
+@keyframes finishZoom{
+  from{opacity:0;transform:scale(0.85);}
+  to{opacity:1;transform:scale(1);}
+}
+#finish-screen > *{animation:finishZoom 0.4s ease both;}
+#finish-screen > *:nth-child(2){animation-delay:0.1s;}
+#finish-screen > *:nth-child(3){animation-delay:0.2s;}
+#finish-screen > *:nth-child(4){animation-delay:0.3s;}
+
+.logo-sub{color:var(--muted);font-size:0.75rem;letter-spacing:0.4em;text-transform:uppercase;margin-bottom:3rem;text-align:center}
+.login-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:2.5rem;width:100%;max-width:440px;
+}
+.login-box h2{color:var(--green);font-size:0.8rem;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:1.5rem}
+.field-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:0.5rem}
+.login-input{
+  width:100%;background:#0d1117;border:1px solid var(--border);border-radius:6px;
+  color:var(--green);font-family:var(--font);font-size:1rem;padding:0.8rem 1rem;
+  outline:none;transition:border-color 0.2s;
+}
+.login-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,255,136,0.1)}
+.login-btn{
+  width:100%;margin-top:1.5rem;padding:0.9rem;
+  background:var(--green);color:#000;font-family:var(--display);font-weight:700;
+  font-size:0.85rem;letter-spacing:0.15em;border:none;border-radius:6px;
+  cursor:pointer;transition:all 0.2s;text-transform:uppercase;
+}
+.login-btn:hover{background:var(--green2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,255,136,0.4)}
+.login-btn:active{transform:translateY(0)}
+.login-stats{display:flex;gap:2rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.stat-item{text-align:center}
+.stat-num{font-family:var(--display);font-size:1.4rem;color:var(--green);font-weight:700}
+.stat-label{font-size:0.65rem;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;margin-top:0.2rem}
+
+#game-screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+
+.header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0.8rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:1rem}
+.header-logo{font-family:var(--display);font-size:1rem;color:var(--green);letter-spacing:0.1em}
+.player-badge{
+  background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);
+  border-radius:20px;padding:0.3rem 0.8rem;font-size:0.75rem;color:var(--green);
+  display:flex;align-items:center;gap:0.4rem;
+}
+.header-right{display:flex;align-items:center;gap:1rem}
+.xp-display{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:0.4rem 1rem;display:flex;align-items:center;gap:0.6rem;
+}
+.xp-label{font-size:0.65rem;color:var(--muted);letter-spacing:0.15em}
+.xp-value{font-family:var(--display);font-size:1rem;color:var(--yellow);font-weight:700}
+.xp-bar-wrap{width:100px;height:4px;background:#1a2030;border-radius:2px;overflow:hidden}
+.xp-bar{height:100%;background:linear-gradient(90deg,var(--yellow),#ffb300);border-radius:2px;transition:width 0.5s ease}
+.progress-text{font-size:0.65rem;color:var(--muted)}
+.lb-btn{
+  background:transparent;border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--font);font-size:0.7rem;padding:0.4rem 0.8rem;
+  cursor:pointer;letter-spacing:0.1em;transition:all 0.2s;
+}
+.lb-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+.game-body{display:flex;flex:1;overflow:hidden;min-height:0}
+
+.task-panel{
+  width:280px;min-width:280px;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.task-panel-header{
+  padding:1rem;border-bottom:1px solid var(--border);
+  font-size:0.65rem;color:var(--muted);letter-spacing:0.3em;text-transform:uppercase;
+}
+.task-filter{display:flex;gap:0.5rem;padding:0.8rem 1rem;border-bottom:1px solid var(--border)}
+.filter-btn{
+  flex:1;padding:0.3rem;background:transparent;border:1px solid var(--border);
+  border-radius:4px;color:var(--muted);font-family:var(--font);font-size:0.65rem;
+  cursor:pointer;transition:all 0.15s;letter-spacing:0.05em;
+}
+.filter-btn.active{background:rgba(0,255,136,0.1);border-color:var(--green);color:var(--green)}
+.task-list{flex:1;overflow-y:auto;padding:0.5rem}
+.task-list::-webkit-scrollbar{width:4px}
+.task-list::-webkit-scrollbar-track{background:transparent}
+.task-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.task-item{
+  padding:0.8rem;border-radius:6px;margin-bottom:0.3rem;cursor:pointer;
+  border:1px solid transparent;transition:all 0.15s;position:relative;
+}
+.task-item:hover{background:var(--surface2);border-color:var(--border)}
+.task-item.active{background:rgba(0,255,136,0.07);border-color:rgba(0,255,136,0.3)}
+.task-item.done{opacity:0.5}
+.task-item.skipped{opacity:0.4}
+.task-item.skipped::after{
+  content:'↷';position:absolute;right:0.8rem;top:50%;transform:translateY(-50%);
+  color:var(--yellow);font-size:0.8rem;
+}
+
+.task-item.done::after{
+  content:'✓';position:absolute;right:0.8rem;top:50%;transform:translateY(-50%);
+  color:var(--green);font-size:0.8rem;
+}
+.task-num{font-size:0.6rem;color:var(--muted);margin-bottom:0.3rem}
+.task-title{font-size:0.75rem;color:var(--text);line-height:1.3;margin-bottom:0.4rem}
+.task-xp-badge{
+  display:inline-block;background:rgba(255,213,79,0.1);border:1px solid rgba(255,213,79,0.3);
+  color:var(--yellow);font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:3px;
+}
+.cat-badge{
+  display:inline-block;font-size:0.58rem;padding:0.1rem 0.4rem;border-radius:3px;margin-right:0.3rem;
+}
+.cat-linux{background:rgba(79,195,247,0.1);color:var(--blue);border:1px solid rgba(79,195,247,0.2)}
+.cat-git{background:rgba(206,147,216,0.1);color:var(--purple);border:1px solid rgba(206,147,216,0.2)}
+
+.main-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+
+.task-detail{
+  padding:1rem 1.5rem;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--surface2) 0%,transparent 100%);
+  flex-shrink:0;
+}
+.task-detail-num{font-size:0.65rem;color:var(--muted);letter-spacing:0.2em;margin-bottom:0.5rem}
+.task-detail-title{font-size:1.15rem;color:var(--text);font-weight:500;margin-bottom:0.8rem;line-height:1.4}
+.task-detail-desc{font-size:0.8rem;color:var(--muted);line-height:1.7;margin-bottom:0.6rem}
+.task-url{font-size:0.78rem;color:var(--blue);background:rgba(79,195,247,0.07);border:1px solid rgba(79,195,247,0.2);border-radius:6px;padding:0.5rem 0.8rem;margin-bottom:0.8rem;word-break:break-all;letter-spacing:0.02em;}
+.task-meta{display:flex;align-items:center;gap:1rem}
+.xp-reward{
+  display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;
+  color:var(--yellow);background:rgba(255,213,79,0.08);
+  border:1px solid rgba(255,213,79,0.2);border-radius:6px;padding:0.3rem 0.7rem;
+}
+.difficulty{font-size:0.7rem;color:var(--muted)}
+.success-msg{
+  display:none;align-items:center;gap:0.5rem;color:var(--green);
+  font-size:0.8rem;background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);
+  border-radius:6px;padding:0.5rem 1rem;
+}
+
+.terminal-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.terminal-topbar{
+  background:#0d1117;border-bottom:1px solid var(--border);
+  padding:0.6rem 1rem;display:flex;align-items:center;gap:0.5rem;
+  flex-shrink:0;
+}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot-r{background:#ff5f56}.dot-y{background:#ffbd2e}.dot-g{background:#27c93f}
+.terminal-path{font-size:0.7rem;color:var(--muted);margin-left:0.5rem}
+.terminal-output{
+  flex:1;background:#0a0c0f;padding:1rem 1.2rem;overflow-y:auto;
+  font-size:0.82rem;line-height:1.8;min-height:0;
+}
+.terminal-output::-webkit-scrollbar{width:4px}
+.terminal-output::-webkit-scrollbar-thumb{background:var(--border)}
+.t-line{margin-bottom:0.1rem;word-break:break-all}
+.t-prompt{color:var(--green)}
+.t-cmd{color:var(--text)}
+.t-out{color:var(--muted)}
+.t-err{color:var(--red)}
+.t-ok{color:var(--green)}
+.t-warn{color:var(--yellow)}
+.t-muted{color:var(--muted);font-style:italic}
+.mistake-counter{display:flex;align-items:center;gap:0.3rem}
+.mistake-dot{font-size:0.7rem;color:var(--border);transition:color 0.3s}
+.mistake-dot.active{color:var(--red)}
+
+.skip-btn{
+  background:transparent;border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);font-family:var(--font);font-size:0.7rem;padding:0.3rem 0.8rem;
+  cursor:pointer;letter-spacing:0.05em;transition:all 0.2s;
+}
+.skip-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+
+.xp-penalty{
+  position:fixed;top:80px;right:20px;
+  background:rgba(255,82,82,0.15);border:1px solid var(--red);
+  border-radius:8px;padding:0.8rem 1.2rem;
+  font-family:var(--display);font-size:0.9rem;color:var(--red);
+  animation:popIn 0.3s ease,fadeOut 0.5s 1.5s forwards;
+  z-index:1000;pointer-events:none;
+}
+
+.terminal-input-row{
+  background:#0d1117;border-top:1px solid var(--border);
+  padding:0.8rem 1.2rem;display:flex;align-items:center;gap:0.5rem;
+  flex-shrink:0;
+}
+.t-prompt-label{color:var(--green);font-size:0.82rem;white-space:nowrap}
+.terminal-input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:var(--font);font-size:0.82rem;
+  caret-color:var(--green);
+}
+
+.xp-popup{
+  position:fixed;top:80px;right:20px;
+  background:rgba(255,213,79,0.15);border:1px solid var(--yellow);
+  border-radius:8px;padding:0.8rem 1.2rem;
+  font-family:var(--display);font-size:0.9rem;color:var(--yellow);
+  animation:popIn 0.3s ease,fadeOut 0.5s 1.5s forwards;
+  z-index:1000;pointer-events:none;
+}
+
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);
+  z-index:200;align-items:center;justify-content:center;padding:1rem;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  width:100%;max-width:500px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;
+}
+.modal-header{
+  padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-family:var(--display);font-size:0.9rem;color:var(--purple);letter-spacing:0.1em}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;font-family:var(--font)}
+.modal-close:hover{color:var(--text)}
+.lb-list{padding:1rem;overflow-y:auto;flex:1}
+.lb-item{
+  display:flex;align-items:center;gap:1rem;padding:0.8rem;
+  border-radius:6px;margin-bottom:0.4rem;background:var(--surface2);
+}
+.lb-item.me{background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.2)}
+.lb-rank{font-family:var(--display);font-size:1rem;color:var(--muted);width:28px;text-align:center}
+.lb-rank.gold{color:#ffd700}.lb-rank.silver{color:#c0c0c0}.lb-rank.bronze{color:#cd7f32}
+.lb-name{flex:1;font-size:0.82rem}
+.lb-tasks{font-size:0.7rem;color:var(--muted)}
+.lb-xp{font-family:var(--display);font-size:0.9rem;color:var(--yellow)}
+
+#finish-screen{
+  display:none;position:fixed;inset:0;background:var(--bg);z-index:300;
+  flex-direction:column;align-items:center;justify-content:center;padding:2rem;
+  background:radial-gradient(ellipse at 50% 40%,rgba(0,255,136,0.12) 0%,transparent 60%);
+}
+.finish-logo{font-family:var(--display);font-size:clamp(2rem,5vw,3.5rem);color:var(--green);font-weight:900;margin-bottom:1rem;text-align:center}
+.finish-score{font-family:var(--display);font-size:clamp(3rem,8vw,6rem);color:var(--yellow);font-weight:700;margin:0.5rem 0}
+.finish-sub{color:var(--muted);font-size:0.8rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:2rem}
+.play-again{
+  background:var(--green);color:#000;font-family:var(--display);font-weight:700;
+  font-size:0.85rem;letter-spacing:0.15em;border:none;border-radius:6px;
+  cursor:pointer;padding:0.9rem 2rem;text-transform:uppercase;transition:all 0.2s;
+}
+.play-again:hover{background:var(--green2);transform:translateY(-2px)}
+
+@media(max-width:700px){
+  .task-panel{width:220px;min-width:220px}
+  .task-detail{min-height:auto}
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="logo">TERMINAL QUEST</div>
+  <div class="logo-sub">Linux & Git — kim ustun?</div>
+  <div class="login-box">
+    <h2>&#x25B8; Kimsan, hacker?</h2>
+    <div class="field-label">Ismingiz</div>
+    <input class="login-input" id="name-input" type="text" placeholder="user@linux:~$" maxlength="20" autocomplete="off"/>
+    <button class="login-btn" onclick="startGame()">BOSHLASH &rarr;</button>
+    <div class="login-stats">
+      <div class="stat-item"><div class="stat-num">30</div><div class="stat-label">Topshiriq</div></div>
+      <div class="stat-item"><div class="stat-num">1550</div><div class="stat-label">Max XP</div></div>
+      <div class="stat-item"><div class="stat-num">&#x221E;</div><div class="stat-label">Urinish</div></div>
+    </div>
+  </div>
+</div>
+
+
+<div id="nano-modal" style="display:none;position:fixed;inset:0;z-index:500;background:#000;font-family:'JetBrains Mono',monospace;">
+  <div id="nano-titlebar" style="background:#fff;color:#000;text-align:center;padding:0.2rem;font-size:0.82rem;font-weight:bold;">
+    GNU nano — <span id="nano-filename">file.txt</span>
+  </div>
+  <div id="nano-content-area" style="flex:1;background:#000;color:#e0e6f0;padding:0.8rem 1rem;position:relative;overflow:hidden;display:flex;flex-direction:column;">
+    <textarea id="nano-textarea" style="width:100%;flex:1;min-height:0;background:transparent;border:none;outline:none;color:#e0e6f0;font-family:'JetBrains Mono',monospace;font-size:0.85rem;resize:none;caret-color:#00ff88;line-height:1.6;" spellcheck="false" placeholder="Matn yozing..."></textarea>
+  </div>
+  <div id="nano-status" style="background:#fff;color:#000;padding:0.15rem 0.5rem;font-size:0.72rem;">
+    &nbsp;
+  </div>
+  <div style="background:#333;color:#e0e6f0;display:grid;grid-template-columns:1fr 1fr;gap:0;font-size:0.72rem;">
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^X</span> Chiqish</div>
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^O</span> Saqlash</div>
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^W</span> Qidirish</div>
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^K</span> Satrni o'chirish</div>
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^C</span> Joylashuv</div>
+    <div style="padding:0.2rem 0.5rem;"><span style="background:#e0e6f0;color:#000;padding:0 0.3rem;">^G</span> Yordam</div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">TQ</div>
+      <div class="player-badge">&#x25CF; <span id="hdr-name">user</span></div>
+    </div>
+    <div class="header-right">
+      <div class="xp-display">
+        <div>
+          <div class="xp-label">XP</div>
+          <div class="xp-value" id="xp-val">0</div>
+        </div>
+        <div>
+          <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+          <div class="progress-text" id="progress-text">0 / 31 topshiriq</div>
+        </div>
+      </div>
+      <button class="lb-btn" onclick="openLb()">&#x25BC; Reyting</button>
+    </div>
+  </header>
+
+  <div class="game-body">
+    <div class="task-panel">
+      <div class="task-panel-header">Topshiriqlar</div>
+      <div class="task-filter">
+        <button class="filter-btn active" onclick="filterTasks('all',this)">Barchasi</button>
+        <button class="filter-btn" onclick="filterTasks('linux',this)">Linux</button>
+        <button class="filter-btn" onclick="filterTasks('git',this)">Git</button>
+        <button class="filter-btn" onclick="filterTasks('done',this)">Bajarildi</button>
+      </div>
+      <div class="task-list" id="task-list"></div>
+    </div>
+
+    <div class="main-panel">
+      <div class="task-detail" id="task-detail">
+        <div class="task-detail-num" id="td-num">TOPSHIRIQ 1 / 30</div>
+        <div class="task-detail-title" id="td-title">Topshiriqni tanlang</div>
+        <div class="task-detail-desc" id="td-desc">Chap paneldan topshiriq tanlang va terminalda bajaring.</div>
+        <div class="task-url" id="td-url" style="display:none"></div>
+        <div class="task-meta">
+          <div class="xp-reward" id="td-xp">&#x26A1; 0 XP</div>
+          <div class="difficulty" id="td-diff"></div>
+          <div class="mistake-counter" id="mistake-counter" style="display:none">
+            <span class="mistake-dot" id="m1">&#x25CF;</span>
+            <span class="mistake-dot" id="m2">&#x25CF;</span>
+            <span class="mistake-dot" id="m3">&#x25CF;</span>
+          </div>
+          <button class="skip-btn" id="skip-btn" onclick="skipTask()" style="display:none">O&#x27;tkazib yuborish &rarr;</button>
+          <div class="success-msg" id="success-msg">&#x2714; Bajarildi! XP qo&#x27;shildi.</div>
+        </div>
+      </div>
+      <div class="terminal-wrap">
+        <div class="terminal-topbar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="terminal-path" id="t-path">bash — /home/user</div>
+        </div>
+        <div class="terminal-output" id="terminal-output">
+          <div class="t-line t-ok">Terminal Quest v1.0 — tayyor!</div>
+          <div class="t-line t-out">Topshiriqni tanlang va buyruqni kiriting.</div>
+          <div class="t-line t-out">&nbsp;</div>
+        </div>
+        <div class="terminal-input-row">
+          <div class="t-prompt-label" id="prompt-label">user@linux:~$</div>
+          <input class="terminal-input" id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="buyruqni kiriting..."/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="lb-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#x25BC; REYTING</div>
+      <button class="modal-close" onclick="closeLb()">&#x2715;</button>
+    </div>
+    <div class="lb-list" id="lb-list"></div>
+  </div>
+</div>
+
+<div id="finish-screen">
+  <div class="finish-logo">&#x1F3C6; BARCHA TOPSHIRIQLAR BAJARILDI!</div>
+  <div class="finish-score" id="finish-score">0 XP</div>
+  <div class="finish-sub" id="finish-name">player</div>
+  <button class="play-again" onclick="resetGame()">QAYTA O'YNASH &rarr;</button>
+</div>
+
+<script>
+const TASKS=[
+  {id:1,cat:'linux',title:'Joriy papkani ko\'rsating',desc:'Hozir qaysi papkada ekanligingizni terminalda ko\'rsating.',xp:30,diff:'Oson',answers:['pwd','pwd -L','pwd -P'],outputs:[[{c:'t-out',t:'/home/user'}]]},
+  {id:2,cat:'linux',title:'Papka ichidagi fayllarni ko\'rsating',desc:'Joriy papkadagi barcha fayllar ro\'yxatini chiqaring.',xp:30,diff:'Oson',answers:['ls','ls .','ls ./','ls -1','ls -C','ls --color'],outputs:[[{c:'t-out',t:'Desktop  Documents  Downloads  projects'}]]},
+  {id:3,cat:'linux',title:'Yangi papka yarating',desc:'"mening_papkam" nomli yangi papka oching.',xp:35,diff:'Oson',answers:['mkdir mening_papkam','mkdir -p mening_papkam','mkdir -v mening_papkam'],outputs:[[]]},
+  {id:4,cat:'linux',title:'Papkaga o\'ting',desc:'"mening_papkam" papkasiga kiring.',xp:35,diff:'Oson',answers:['cd mening_papkam','cd ./mening_papkam','cd /home/user/mening_papkam'],outputs:[[]]},
+  {id:5,cat:'linux',title:'Bo\'sh fayl yarating',desc:'"salom.txt" nomli bo\'sh fayl yarating.',xp:35,diff:'Oson',answers:['touch salom.txt','> salom.txt','touch ./salom.txt'],outputs:[[]]},
+  {id:6,cat:'linux',title:'Faylni o\'chiring',desc:'"salom.txt" faylini o\'chiring.',xp:35,diff:'Oson',answers:['rm salom.txt','rm -f salom.txt','rm -rf salom.txt','rm -v salom.txt','rm -i salom.txt','unlink salom.txt'],outputs:[[]]},
+  {id:7,cat:'linux',title:'Papkani o\'chiring',desc:'"mening_papkam" papkasini o\'chiring.',xp:40,diff:'Oson',answers:['rmdir mening_papkam','rm -r mening_papkam','rm -rf mening_papkam','rm -r mening_papkam/','rm -rf mening_papkam/','rm -rv mening_papkam','rmdir -p mening_papkam'],outputs:[[]]},
+  {id:8,cat:'linux',title:'Faylga matn yozing',desc:'"Salom dunyo" matnini test.txt fayliga yozing.',xp:40,diff:'Oson',answers:[
+    'echo "salom dunyo" > test.txt','echo salom dunyo > test.txt',
+    'echo "Salom dunyo" > test.txt','echo Salom dunyo > test.txt',
+    'nano test.txt','nano ./test.txt',
+    'vim test.txt','vim ./test.txt',
+    'vi test.txt','vi ./test.txt',
+    'gedit test.txt','gedit ./test.txt',
+    'tee test.txt','tee ./test.txt',
+    'printf "salom dunyo" > test.txt','printf "Salom dunyo" > test.txt',
+    'printf "salom dunyo\n" > test.txt','printf "Salom dunyo\n" > test.txt',
+    'cat > test.txt'
+  ],outputs:[[]]},
+  {id:9,cat:'linux',title:'Fayl matnini ko\'rsating',desc:'test.txt fayli ichidagi matnni ekranga chiqaring.',xp:30,diff:'Oson',answers:[
+    'cat test.txt','cat ./test.txt',
+    'more test.txt','less test.txt',
+    'head test.txt','tail test.txt',
+    'head -n 1 test.txt','tail -n 1 test.txt',
+    'tac test.txt','nl test.txt',
+    'bat test.txt','view test.txt'
+  ],outputs:[[{c:'t-out',t:'Salom dunyo'}]]},
+  {id:10,cat:'linux',title:'Faylni ko\'chiring',desc:'test.txt faylini nusxa.txt nomi bilan nusxalab oling.',xp:40,diff:'Oson',answers:[
+    'cp test.txt nusxa.txt','cp ./test.txt nusxa.txt','cp test.txt ./nusxa.txt',
+    'cp -v test.txt nusxa.txt','cp -p test.txt nusxa.txt',
+    'cp --preserve test.txt nusxa.txt'
+  ],outputs:[[]]},
+  {id:11,cat:'linux',title:'Faylni qayta nomlang',desc:'nusxa.txt faylini yangi.txt deb qayta nomlang.',xp:50,diff:"O'rta",answers:[
+    'mv nusxa.txt yangi.txt','mv ./nusxa.txt yangi.txt',
+    'mv -v nusxa.txt yangi.txt','mv -i nusxa.txt yangi.txt',
+    'rename nusxa.txt yangi.txt'
+  ],outputs:[[]]},
+  {id:12,cat:'linux',title:'Kengaytirilgan ro\'yxat',desc:'Yashirin fayllar va huquqlar bilan birga barcha fayllarni ko\'rsating.',xp:45,diff:"O'rta",answers:['ls -la','ls -al','ls -la .','ls -al .','ls -lah','ls -alh','ls -la --color','ls -laF'],outputs:[[{c:'t-out',t:'total 20'},{c:'t-warn',t:'drwxr-xr-x 2 user user 4096 . ..'},{c:'t-out',t:'-rw-r--r-- 1 user user   12 test.txt'}]]},
+  {id:13,cat:'linux',title:'Disk hajmini tekshirish',desc:'Disk bo\'sh joyini odam o\'qiy oladigan formatda ko\'rsating.',xp:50,diff:"O'rta",answers:['df -h','df -h .','df -H','df --human-readable','df -Th','df -ah'],outputs:[[{c:'t-out',t:'Filesystem      Size  Used Avail'},{c:'t-out',t:'/dev/sda1        50G   18G   32G  36%'}]]},
+  {id:14,cat:'linux',title:'Fayl ichidan qidiring',desc:'test.txt ichidan "Salom" so\'zini toping.',xp:50,diff:"O'rta",answers:[
+    'grep "salom" test.txt','grep salom test.txt',
+    'grep "Salom" test.txt','grep Salom test.txt',
+    'grep -i "salom" test.txt','grep -i salom test.txt',
+    'grep -n "salom" test.txt','grep -n salom test.txt',
+    'grep -n "Salom" test.txt','grep -n Salom test.txt',
+    'grep -in "salom" test.txt','grep -ni salom test.txt',
+    'grep -w "salom" test.txt','grep -w salom test.txt',
+    'grep -w "Salom" test.txt','grep -w Salom test.txt',
+    'grep -i -w salom test.txt'
+  ],outputs:[[{c:'t-ok',t:'Salom dunyo'}]]},
+  {id:15,cat:'linux',title:'Fayl huquqlarini o\'zgartiring',desc:'test.txt fayliga owner uchun to\'liq, boshqalarga o\'qish/bajarish huquqi bering.',xp:55,diff:"O'rta",answers:[
+    'chmod 755 test.txt','chmod 755 ./test.txt',
+    'chmod u+rwx,go+rx test.txt','chmod u=rwx,go=rx test.txt',
+    'chmod u+rwx,g+rx,o+rx test.txt',
+    'chmod a+rx,u+w test.txt',
+    'chmod +x test.txt','chmod +rx test.txt'
+  ],outputs:[[]]},
+  {id:16,cat:'git',title:'Git omborini yarating',desc:'Joriy papkada yangi bo\'sh git ombori oching.',xp:40,diff:'Oson',answers:['git init','git init .','git init --initial-branch=main','git init -b main'],outputs:[[{c:'t-ok',t:'Initialized empty Git repository in /home/user/.git/'}]]},
+  {id:17,cat:'git',title:'Git holatini tekshiring',desc:'Hozirgi branch va o\'zgarishlar holatini ko\'rsating.',xp:40,diff:'Oson',answers:['git status','git status .','git status -s','git status --short','git status -v','git st','git status -sb'],outputs:[[{c:'t-out',t:'On branch main'},{c:'t-ok',t:'nothing to commit, working tree clean'}]]},
+  {id:18,cat:'git',title:'Faylni staging\'ga qo\'shing',desc:'test.txt faylini keyingi commitga tayyorlang.',xp:40,diff:'Oson',answers:['git add test.txt','git add ./test.txt','git stage test.txt','git add -v test.txt'],outputs:[[]]},
+  {id:19,cat:'git',title:'Hamma faylni staging\'ga qo\'shing',desc:'Barcha o\'zgargan fayllarni bir vaqtda staging\'ga qo\'shing.',xp:40,diff:'Oson',answers:['git add .','git add -A','git add --all','git add *','git add -u','git add --update','git stage .','git stage -A'],outputs:[[]]},
+  {id:20,cat:'git',title:'O\'zgarishlarni saqlang',desc:'"birinchi commit" xabari bilan commitni amalga oshiring.',xp:45,diff:'Oson',answers:['git commit -m "birinchi commit"','git commit -m \'birinchi commit\'','git commit -m birinchi commit','git commit --message "birinchi commit"','git commit --message \'birinchi commit\''],outputs:[[{c:'t-ok',t:'[main (root-commit) a1b2c3d] birinchi commit'},{c:'t-out',t:'1 file changed, 1 insertion(+)'}]]},
+  {id:21,cat:'git',title:'Commit tarixini ko\'rsating',desc:'Barcha commitlar tarixi batafsil ko\'rinishini chiqaring.',xp:40,diff:'Oson',answers:['git log','git log --all','git log -p','git log --stat','git log --graph','git log --decorate','git log -n 10','git log --follow'],outputs:[[{c:'t-warn',t:'commit a1b2c3d'},{c:'t-out',t:'Author: user <user@mail.com>'},{c:'t-out',t:'Date:   Fri May 24 2025'},{c:'t-out',t:''},{c:'t-out',t:'    birinchi commit'}]]},
+  {id:22,cat:'git',title:'Branchlar ro\'yxati',desc:'Barcha mavjud branchlarni ko\'rsating.',xp:40,diff:'Oson',answers:['git branch','git branch -a','git branch --all','git branch -l','git branch -v','git branch -vv','git branch --list'],outputs:[[{c:'t-ok',t:'* main'},{c:'t-out',t:'  yangi-branch'}]]},
+  {id:23,cat:'git',title:'Branch ga o\'ting',desc:'"yangi-branch" branchiga o\'ting.',xp:45,diff:"O'rta",answers:['git checkout yangi-branch','git switch yangi-branch','git checkout -q yangi-branch','git switch -q yangi-branch'],outputs:[[{c:'t-ok',t:"Switched to branch 'yangi-branch'"}]]},
+
+  {id:24,cat:'git',title:'Branch yaratib, darhol o\'ting',desc:'"test-branch" nomli yangi branch oching va darhol u yerga o\'ting.',xp:55,diff:"O'rta",answers:['git checkout -b test-branch','git switch -c test-branch','git switch --create test-branch','git checkout -B test-branch','git switch -C test-branch'],outputs:[[{c:'t-ok',t:"Switched to a new branch 'test-branch'"}]]},
+  {id:25,cat:'git',title:'Branchlarni birlashtiring',desc:'"yangi-branch" ni joriy branchga birlashtiring.',xp:60,diff:"O'rta",answers:['git merge yangi-branch','git merge --no-ff yangi-branch','git merge --ff yangi-branch','git merge --ff-only yangi-branch','git merge -v yangi-branch','git merge --squash yangi-branch'],outputs:[[{c:'t-ok',t:'Updating a1b2c3d..d4e5f6g'},{c:'t-ok',t:'Fast-forward'}]]},
+  {id:26,cat:'git',title:'Remote manzillarini ko\'rsating',desc:'Barcha remote omborlar va ularning URL manzillarini ko\'rsating.',xp:55,diff:"O'rta",answers:['git remote -v','git remote --verbose','git remote show origin','git remote','git remote get-url origin'],outputs:[[{c:'t-out',t:'origin  https://github.com/user/repo.git (fetch)'},{c:'t-out',t:'origin  https://github.com/user/repo.git (push)'}]]},
+  {id:27,cat:'git',title:'Kodni GitHub\'ga yuklang',desc:'Joriy branchdagi commitlarni GitHub\'ga yuboring.',xp:65,diff:"O'rta",answers:['git push origin main','git push','git push -u origin main','git push --set-upstream origin main','git push --force-with-lease origin main','git push origin HEAD'],outputs:[[{c:'t-out',t:'Enumerating objects: 3, done.'},{c:'t-ok',t:'Branch main set up to track remote branch main from origin.'}]]},
+  {id:28,cat:'git',title:'Remote dan o\'zgarishlarni oling',desc:'GitHub\'dagi so\'nggi o\'zgarishlarni lokal kompyuteringizga tortib oling.',xp:65,diff:"O'rta",answers:['git pull origin main','git pull','git pull --rebase origin main','git fetch && git merge','git fetch origin && git merge origin/main','git pull --ff-only','git pull --rebase'],outputs:[[{c:'t-ok',t:'Already up to date.'}]]},
+  {id:29,cat:'git',title:'Faylni staging\'dan olib tashlang',desc:'test.txt faylini staging hududidan olib tashlang (commitga kiritmasdan).',xp:60,diff:"O'rta",answers:['git restore --staged test.txt','git reset head test.txt','git reset test.txt','git reset -- test.txt','git reset HEAD test.txt','git reset HEAD -- test.txt'],outputs:[[]]},
+  {id:30,cat:'git',title:'Omborni klonlang',desc:'GitLab\'dan loyihani yuklab oling.',url:'https://gitlab.com/linux-learning/exercise-1',xp:70,diff:'Qiyin',answers:['git clone https://gitlab.com/linux-learning/exercise-1','git clone https://gitlab.com/linux-learning/exercise-1.git','git clone https://gitlab.com/linux-learning/exercise-1 .','git clone --depth 1 https://gitlab.com/linux-learning/exercise-1','git clone -v https://gitlab.com/linux-learning/exercise-1'],outputs:[[{c:'t-out',t:"Cloning into 'exercise-1'..."},{c:'t-ok',t:'Receiving objects: 100% (42/42), done.'}]]},
+];
+
+let state={
+  playerName:'',
+  xp:0,
+  done:new Set(),
+  skipped:new Set(),
+  currentTask:null,
+  filter:'all',
+  history:[],
+  histIndex:-1,
+  mistakes:0,
+  taskPenalty:0,
+};
+
+function loadLb(){try{return JSON.parse(localStorage.getItem('tq_lb')||'[]')}catch{return[]}}
+function saveLb(){
+  let lb=loadLb();
+  let idx=lb.findIndex(x=>x.name===state.playerName);
+  if(idx>=0){lb[idx]={name:state.playerName,xp:state.xp,done:state.done.size}}
+  else lb.push({name:state.playerName,xp:state.xp,done:state.done.size});
+  lb.sort((a,b)=>b.xp-a.xp);
+  localStorage.setItem('tq_lb',JSON.stringify(lb.slice(0,20)));
+}
+
+function startGame(){
+  const n=document.getElementById('name-input').value.trim();
+  if(!n){document.getElementById('name-input').focus();return;}
+  state.playerName=n;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  document.getElementById('hdr-name').textContent=n;
+  document.getElementById('prompt-label').textContent=n.toLowerCase().replace(/\s/g,'')+'@linux:~$';
+  document.getElementById('t-path').textContent='bash — /home/'+n.toLowerCase().replace(/\s/g,'');
+  renderTaskList();
+  selectTask(TASKS[0]);
+  document.getElementById('terminal-input').focus();
+  saveLb();
+}
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+
+function renderTaskList(){
+  const list=document.getElementById('task-list');
+  list.innerHTML='';
+  const f=state.filter;
+  TASKS.forEach(t=>{
+    if(f==='linux'&&t.cat!=='linux')return;
+    if(f==='git'&&t.cat!=='git')return;
+    if(f==='done'&&!state.done.has(t.id))return;
+    const div=document.createElement('div');
+    const isSkipped=state.skipped.has(t.id);
+    const isDone=state.done.has(t.id);
+    div.className='task-item'+(isDone?' done':isSkipped?' skipped':'')+(state.currentTask&&state.currentTask.id===t.id?' active':'');
+    div.onclick=()=>selectTask(t);
+    div.innerHTML=`<div class="task-num">T-${String(t.id).padStart(2,'0')}</div>
+      <div class="task-title">${t.title}</div>
+      <span class="cat-badge cat-${t.cat}">${t.cat==='linux'?'Linux':'Git'}</span>
+      <span class="task-xp-badge" style="${isSkipped?'color:var(--red);border-color:rgba(255,82,82,0.3);background:rgba(255,82,82,0.08)':''}">
+        ${isDone?'+'+t.xp+' XP':isSkipped?'O&#x27;tkazildi':'+'+(t.xp)+' XP'}
+      </span>`;
+    list.appendChild(div);
+  });
+}
+
+function filterTasks(f,btn){
+  state.filter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTaskList();
+}
+
+function selectTask(t){
+  state.currentTask=t;
+  state.mistakes=0;
+  state.taskPenalty=0;
+  document.getElementById('td-num').textContent=`TOPSHIRIQ ${t.id} / 30`;
+  document.getElementById('td-title').textContent=t.title;
+  document.getElementById('td-desc').textContent=t.desc;
+  const urlEl=document.getElementById('td-url');
+  if(t.url){urlEl.style.display='block';urlEl.textContent=t.url;}
+  else{urlEl.style.display='none';}
+  document.getElementById('td-xp').innerHTML=`&#x26A1; +${t.xp} XP`;
+  document.getElementById('td-diff').textContent=t.diff;
+  const done=state.done.has(t.id)||state.skipped.has(t.id);
+  document.getElementById('success-msg').style.display=state.done.has(t.id)?'flex':'none';
+  // Reset mistake UI
+  document.getElementById('mistake-counter').style.display='none';
+  document.getElementById('skip-btn').style.display=done?'none':'none';
+  ['m1','m2','m3'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  renderTaskList();
+  document.getElementById('terminal-input').focus();
+}
+
+function addLine(cls,text){
+  const out=document.getElementById('terminal-output');
+  const div=document.createElement('div');
+  div.className='t-line '+cls;
+  div.textContent=text||'\u00a0';
+  out.appendChild(div);
+  out.scrollTop=out.scrollHeight;
+}
+
+document.getElementById('terminal-input').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    const cmd=this.value.trim();
+    if(!cmd)return;
+    state.history.unshift(cmd);
+    state.histIndex=-1;
+    this.value='';
+    runCmd(cmd);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    state.histIndex=Math.min(state.histIndex+1,state.history.length-1);
+    this.value=state.history[state.histIndex]||'';
+  } else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    state.histIndex=Math.max(state.histIndex-1,-1);
+    this.value=state.histIndex>=0?state.history[state.histIndex]:'';
+  }
+});
+
+function runCmd(cmd){
+  const pn=state.playerName.toLowerCase().replace(/\s/g,'');
+  addLine('t-line',`${pn}@linux:~$ ${cmd}`);
+  if(cmd==='clear'){document.getElementById('terminal-output').innerHTML='';return;}
+  if(cmd==='help'){
+    addLine('t-ok','Mavjud buyruqlar: pwd, ls, mkdir, cd, touch, rm, rmdir, echo, cat, cp, mv,');
+    addLine('t-ok','nano, vim, vi, more, less, head, tail, grep, du, df, free, ps, who, chmod, ping,');
+    addLine('t-ok','git init, git status, git add, git commit, git log, git branch, git checkout,');
+    addLine('t-ok','git merge, git remote, git push, git pull, git diff, git restore, git clone, clear');
+    return;
+  }
+  if(!state.currentTask){addLine('t-warn','Avval topshiriq tanlang!');return;}
+  const t=state.currentTask;
+  const ans=t.answers.map(a=>a.toLowerCase().replace(/\s+/g,' ').trim());
+  const inp=cmd.toLowerCase().replace(/\s+/g,' ').trim();
+  const editorMatch=inp.match(/^(nano|vim|vi|gedit)\s+(.+)/);
+  if(editorMatch){
+    const editor=editorMatch[1],file=editorMatch[2];
+    if(editor==='nano'){
+      if(ans.includes(inp)){
+        openNano(file, ()=>{
+          addLine('t-ok', `nano: "${file}" saqlandi va yopildi.`);
+          markCorrect(t);
+        });
+      } else {
+        openNano(file, ()=>{
+          addLine('t-muted', `nano: "${file}" saqlandi.`);
+        });
+      }
+      return;
+    } else if(editor==='vim'||editor==='vi'){
+      addLine('t-out',`  "${file}" [Yangi fayl]`);
+      addLine('t-muted','  ~');addLine('t-muted','  ~');addLine('t-muted','  ~');
+      addLine('t-warn','  INSERT: i  |  Saqlash+Chiqish: :wq  |  Chiqish: :q!');
+      addLine('t-muted','  [ Simulyatsiya: i → matn → Esc → :wq ]');
+    } else {
+      addLine('t-muted',`  [ ${editor} ochildi, tahrirlandi va yopildi ]`);
+    }
+  }
+  if(inp==='cat > test.txt'){
+    addLine('t-muted','  [ Matn kiriting va Ctrl+D bilan saqlang ]');
+    addLine('t-muted','  [ Simulyatsiya: fayl saqlandi ]');
+  }
+  if(ans.includes(inp)){
+    const outs=t.outputs[0]||[];
+    if(outs.length===0) addLine('t-ok','');
+    outs.forEach(o=>addLine(o.c,o.t));
+    markCorrect(t);
+  } else {
+    const genericOutputs={
+      'ls':()=>addLine('t-out','Desktop  Documents  Downloads  projects  test.txt'),
+      'pwd':()=>addLine('t-out','/home/'+pn),
+      'git status':()=>{addLine('t-out','On branch main');addLine('t-warn','Changes not staged for commit');},
+      'git log':()=>{addLine('t-warn','commit a1b2c3d4');addLine('t-out','    birinchi commit');},
+    };
+    const gk=Object.keys(genericOutputs).find(k=>inp.startsWith(k));
+    if(gk){genericOutputs[gk]();}
+    else if(inp.startsWith('git ')){addLine('t-out','...');}
+    else if(inp.startsWith('cd ')){
+      const dir=cmd.slice(3).trim();
+      addLine('t-err',`bash: cd: ${dir}: No such file or directory`);
+    } else if(inp==='ls'||inp==='ls -la'){
+      addLine('t-out','Desktop  Documents  Downloads');
+    } else {
+      addLine('t-err',`bash: ${cmd.split(' ')[0]}: command not found`);
+    }
+
+    if(!state.done.has(t.id) && !state.skipped.has(t.id)){
+      state.mistakes++;
+      updateMistakeUI(state.mistakes);
+
+      const penalty=Math.round(t.xp*0.1);
+      if(state.xp>0){
+        state.xp=Math.max(0,state.xp-penalty);
+        state.taskPenalty+=penalty;
+        updateXP();
+        showXpPenalty(penalty);
+      }
+
+      if(state.mistakes>=3){
+        addLine('t-err',"[ 3 marta xato! Topshiriq o'tkazib yuborildi. ]");
+        state.skipped.add(t.id);
+        renderTaskList();
+        const next=TASKS.find(tt=>!state.done.has(tt.id)&&!state.skipped.has(tt.id));
+        if(next) setTimeout(()=>selectTask(next),1000);
+        else if(state.done.size+state.skipped.size===TASKS.length) setTimeout(showFinish,800);
+        return;
+      } else {
+        addLine('t-warn',`[ Xato ${state.mistakes}/3 — ${3-state.mistakes} urinish qoldi | -${penalty} XP ]`);
+        if(state.mistakes===1){
+          document.getElementById('mistake-counter').style.display='flex';
+          document.getElementById('skip-btn').style.display='block';
+        }
+      }
+    } else {
+      addLine('t-warn','[ Xato! Topshiriq: '+t.title+' ]');
+    }
+  }
+}
+
+
+function markCorrect(t){
+  if(!state.done.has(t.id)){
+    state.done.add(t.id);
+    state.xp+=t.xp;
+    updateXP();
+    showXpPopup(t.xp);
+    showSuccessFlash();
+    saveLb();
+  }
+  document.getElementById('success-msg').style.display='flex';
+  document.getElementById('skip-btn').style.display='none';
+  document.getElementById('mistake-counter').style.display='none';
+  renderTaskList();
+  if(state.done.size+state.skipped.size===TASKS.length){setTimeout(showFinish,600);}
+  else{
+    const next=TASKS.find(tt=>!state.done.has(tt.id)&&!state.skipped.has(tt.id));
+    if(next) setTimeout(()=>selectTask(next),800);
+  }
+}
+
+function updateMistakeUI(n){
+  ['m1','m2','m3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.classList.toggle('active',i<n);
+  });
+}
+
+
+function showSuccessFlash(){
+  document.body.classList.add('success-flash');
+  setTimeout(()=>document.body.classList.remove('success-flash'),500);
+}
+function showErrorShake(){
+  document.body.classList.remove('error-shake');
+  void document.body.offsetWidth; // reflow
+  document.body.classList.add('error-shake');
+  setTimeout(()=>document.body.classList.remove('error-shake'),650);
+}
+
+function showXpPenalty(xp){
+  const p=document.createElement('div');
+  p.className='xp-penalty';
+  p.textContent='-'+xp+' XP ⚠';
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),2100);
+}
+
+function skipTask(){
+  const t=state.currentTask;
+  if(!t||state.done.has(t.id)||state.skipped.has(t.id))return;
+  state.skipped.add(t.id);
+  addLine('t-warn',"[ Topshiriq o'tkazib yuborildi. XP berilmadi. ]");
+  document.getElementById('skip-btn').style.display='none';
+  document.getElementById('mistake-counter').style.display='none';
+  renderTaskList();
+  saveLb();
+  const next=TASKS.find(tt=>!state.done.has(tt.id)&&!state.skipped.has(tt.id));
+  if(next) setTimeout(()=>selectTask(next),600);
+  else setTimeout(showFinish,600);
+}
+
+function updateXP(){
+  document.getElementById('xp-val').textContent=state.xp;
+  const pct=Math.min(100,(state.xp/1550)*100);
+  document.getElementById('xp-bar').style.width=pct+'%';
+  const skipCount=state.skipped.size;
+  document.getElementById('progress-text').textContent=state.done.size+' / 30'+(skipCount?' ('+skipCount+' skip)':'');
+}
+
+function showXpPopup(xp){
+  const p=document.createElement('div');
+  p.className='xp-popup';
+  p.textContent='+'+xp+' XP ⚡';
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),2100);
+}
+
+let nanoState = { file:'', savedCallback:null, saved:false };
+
+function openNano(filename, onSave){
+  nanoState = { file:filename, savedCallback:onSave, saved:false };
+  document.getElementById('nano-filename').textContent = filename;
+  document.getElementById('nano-textarea').value = '';
+  document.getElementById('nano-status').textContent = ' ';
+  const modal = document.getElementById('nano-modal');
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+  modal.style.animation = 'nanoSlideIn 0.2s ease';
+  setTimeout(()=>document.getElementById('nano-textarea').focus(), 50);
+}
+
+function closeNano(saved){
+  const modal = document.getElementById('nano-modal');
+  modal.style.animation = 'nanoSlideOut 0.15s ease forwards';
+  setTimeout(()=>{ modal.style.display='none'; modal.style.animation=''; }, 150);
+  if(saved && nanoState.savedCallback) nanoState.savedCallback();
+  document.getElementById('terminal-input').focus();
+}
+
+document.getElementById('nano-textarea').addEventListener('keydown', function(e){
+  if(e.ctrlKey && e.key==='o'){
+    e.preventDefault();
+    nanoState.saved = true;
+    document.getElementById('nano-status').textContent = 'Fayl nomi: '+nanoState.file+' (Enter bosing)';
+    document.getElementById('nano-status').style.background = '#00ff88';
+    document.getElementById('nano-status').style.color = '#000';
+    setTimeout(()=>{
+      document.getElementById('nano-status').textContent = '"'+nanoState.file+'" saqlandi.';
+      document.getElementById('nano-status').style.background = '#fff';
+      document.getElementById('nano-status').style.color = '#000';
+    }, 800);
+    return;
+  }
+  if(e.ctrlKey && e.key==='x'){
+    e.preventDefault();
+    if(!nanoState.saved && this.value.trim()){
+      document.getElementById('nano-status').textContent = "O'zgarishlarni saqlaysizmi? (Ctrl+O saqlash, Ctrl+X bekor qilish)";
+      document.getElementById('nano-status').style.background = '#ffd54f';
+      document.getElementById('nano-status').style.color = '#000';
+      nanoState._pendingClose = true;
+      return;
+    }
+    closeNano(nanoState.saved);
+    return;
+  }
+  if(e.ctrlKey && e.key==='x' && nanoState._pendingClose){
+    e.preventDefault();
+    closeNano(false);
+    return;
+  }
+  if(!e.ctrlKey) nanoState._pendingClose = false;
+});
+
+function openLb(){
+  saveLb();
+  const lb=loadLb();
+  const list=document.getElementById('lb-list');
+  list.innerHTML='';
+  if(!lb.length){list.innerHTML='<div style="color:var(--muted);padding:1rem;font-size:0.8rem">Hali hech kim yo\'q.</div>';
+  } else {
+    lb.forEach((p,i)=>{
+      const div=document.createElement('div');
+      div.className='lb-item'+(p.name===state.playerName?' me':'');
+      const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      div.innerHTML=`<div class="lb-rank ${rankClass}">${i+1}</div>
+        <div class="lb-name">${p.name}${p.name===state.playerName?' <span style="color:var(--green);font-size:0.65rem">(siz)</span>':''}</div>
+        <div class="lb-tasks">${p.done}/30</div>
+        <div class="lb-xp">${p.xp} XP</div>`;
+      list.appendChild(div);
+    });
+  }
+  document.getElementById('lb-modal').classList.add('open');
+}
+function closeLb(){document.getElementById('lb-modal').classList.remove('open');}
+document.getElementById('lb-modal').addEventListener('click',function(e){if(e.target===this)closeLb();});
+
+function showFinish(){
+  saveLb();
+  const skipInfo=state.skipped.size>0?` | ${state.skipped.size} ta o'tkazildi`:'';
+  document.getElementById('finish-score').textContent=state.xp+' XP';
+  document.getElementById('finish-name').textContent=state.playerName+skipInfo;
+  document.getElementById('finish-screen').style.display='flex';
+}
+
+function resetGame(){
+  state={playerName:'',xp:0,done:new Set(),skipped:new Set(),currentTask:null,filter:'all',history:[],histIndex:-1,mistakes:0,taskPenalty:0};
+  document.getElementById('finish-screen').style.display='none';
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('name-input').value='';
+  document.getElementById('terminal-output').innerHTML='<div class="t-line t-ok">Terminal Quest v1.0 — tayyor!</div><div class="t-line t-out">Topshiriqni tanlang va buyruqni kiriting.</div><div class="t-line t-out">&nbsp;</div>';
+  updateXP();
+}
+</script>
+</body>
+</html>

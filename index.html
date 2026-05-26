@@ -421,7 +421,7 @@ body.success-flash{animation:successFlash 0.5s ease;}
           <div class="progress-text" id="progress-text">0 / 31 topshiriq</div>
         </div>
       </div>
-      <button class="lb-btn" onclick="openLb()">&#x25BC; Reyting</button>
+      <div id="timer-box" style="margin-left:1rem;font-family:var(--display);font-size:1.1rem;color:var(--yellow);min-width:70px;text-align:center;">01:00</div>
     </div>
   </header>
 
@@ -637,6 +637,8 @@ function filterTasks(f,btn){
   renderTaskList();
 }
 
+let timerInterval = null;
+let timerEndTime = null;
 function selectTask(t){
   state.currentTask=t;
   state.mistakes=0;
@@ -657,6 +659,35 @@ function selectTask(t){
   ['m1','m2','m3'].forEach(id=>document.getElementById(id).classList.remove('active'));
   renderTaskList();
   document.getElementById('terminal-input').focus();
+  // --- TIMER START ---
+  clearInterval(timerInterval);
+  let timerBox = document.getElementById('timer-box');
+  let seconds = 60;
+  timerBox.textContent = '01:00';
+  timerBox.style.color = 'var(--yellow)';
+  timerEndTime = Date.now() + seconds*1000;
+  function updateTimer() {
+    let left = Math.max(0, Math.round((timerEndTime - Date.now())/1000));
+    let min = String(Math.floor(left/60)).padStart(2,'0');
+    let sec = String(left%60).padStart(2,'0');
+    timerBox.textContent = min+':'+sec;
+    if(left <= 10) timerBox.style.color = 'var(--red)';
+    if(left === 0) {
+      clearInterval(timerInterval);
+      // Skip task with 0 XP
+      if(!state.done.has(t.id) && !state.skipped.has(t.id)) {
+        state.skipped.add(t.id);
+        addLine('t-err', '[ Vaqt tugadi! Topshiriq o\'tkazib yuborildi. XP berilmadi. ]');
+        renderTaskList();
+        saveLb();
+        const next=TASKS.find(tt=>!state.done.has(tt.id)&&!state.skipped.has(tt.id));
+        if(next) setTimeout(()=>selectTask(next),800);
+        else setTimeout(showFinish,800);
+      }
+    }
+  }
+  timerInterval = setInterval(updateTimer, 250);
+  updateTimer();
 }
 
 function addLine(cls,text){
@@ -789,6 +820,7 @@ function runCmd(cmd){
 
 
 function markCorrect(t){
+  clearInterval(timerInterval);
   if(!state.done.has(t.id)){
     state.done.add(t.id);
     state.xp+=t.xp;
@@ -836,6 +868,7 @@ function showXpPenalty(xp){
 }
 
 function skipTask(){
+  clearInterval(timerInterval);
   const t=state.currentTask;
   if(!t||state.done.has(t.id)||state.skipped.has(t.id))return;
   state.skipped.add(t.id);
